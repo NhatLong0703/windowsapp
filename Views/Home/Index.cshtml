@@ -1,0 +1,108 @@
+@model DashVM
+@{
+    ViewData["Title"] = "Tổng quan";
+    var h = DateTime.Now.Hour;
+    var chao = h < 12 ? "Chào buổi sáng" : h < 18 ? "Chào buổi chiều" : "Chào buổi tối";
+    var max = Math.Max(1, Model.Chart.Max(x => Math.Max(x.Nhap, x.Xuat)));
+    var thu = new[] { "CN", "T2", "T3", "T4", "T5", "T6", "T7" };
+    (string cls, string txt) Gr(int cur, int prev)
+    {
+        if (prev == 0) return ("muted", "Chưa có dữ liệu tháng trước");
+        var p = (cur - prev) * 100.0 / prev;
+        return (p >= 0 ? "up" : "down", (p >= 0 ? "↗ " : "↘ ") + Math.Abs(p).ToString("0.0") + "%");
+    }
+    var gn = Gr(Model.NhapThang, Model.NhapTruoc);
+    var gx = Gr(Model.XuatThang, Model.XuatTruoc);
+}
+<div class="page-h">
+    <div>
+        <div class="eyebrow">TỔNG QUAN HỆ THỐNG</div>
+        <h1>@chao, @User.Identity?.Name</h1>
+        <p class="muted">@(Model.KhoTen != null ? "Kho phụ trách: " + Model.KhoTen + " · " : "")Dưới đây là tình hình hoạt động kho hàng hôm nay.</p>
+    </div>
+    <a class="btn btn-primary" asp-controller="BaoCao" asp-action="Csv">@Ui.Icon("download") Xuất báo cáo</a>
+</div>
+
+@if (Model.DonCho > 0)
+{
+    <div class="warnbox top-warn">🛒 Có <b>@Model.DonCho</b> đơn bán lẻ đang chờ xác nhận. <a class="lnk" asp-controller="DonBanLe" asp-action="Index" asp-route-trangThai="ChoXacNhan">Xem đơn →</a></div>
+}
+
+<div class="stats">
+    <div class="card stat"><div class="stat-t">@(Model.KhoTen != null ? "Sản phẩm trong kho" : "Tổng sản phẩm") <i class="chip blue">@Ui.Icon("box")</i></div><div class="stat-v">@Fmt.Num(Model.TongSP)</div><div class="muted">@(Model.KhoTen != null ? "Số mặt hàng còn tồn" : "Số mặt hàng đang quản lý")</div></div>
+    <div class="card stat"><div class="stat-t">Giá trị tồn kho <i class="chip purple">@Ui.Icon("grid")</i></div><div class="stat-v">@Fmt.Short(Model.GiaTri) <small>đ</small></div><div class="muted">Theo đơn giá sản phẩm</div></div>
+    <div class="card stat"><div class="stat-t">Phiếu nhập tháng này <i class="chip green">@Ui.Icon("in")</i></div><div class="stat-v">@Model.NhapThang</div><div><b class="@gn.cls">@gn.txt</b> <span class="muted">@(Model.NhapTruoc > 0 ? "so với tháng trước" : "")</span></div></div>
+    <div class="card stat"><div class="stat-t">Phiếu xuất tháng này <i class="chip orange">@Ui.Icon("out")</i></div><div class="stat-v">@Model.XuatThang</div><div><b class="@gx.cls">@gx.txt</b> <span class="muted">@(Model.XuatTruoc > 0 ? "so với tháng trước" : "")</span></div></div>
+</div>
+
+<div class="two">
+    <div class="card">
+        <div class="card-h">
+            <div><h3>Hoạt động nhập - xuất</h3><p class="muted">Tổng số lượng giao dịch trong @Model.Days ngày gần nhất</p></div>
+            <form method="get"><select name="days" onchange="this.form.submit()">
+                <option value="7" selected="@(Model.Days == 7)">7 ngày qua</option>
+                <option value="14" selected="@(Model.Days == 14)">14 ngày qua</option>
+                <option value="30" selected="@(Model.Days == 30)">30 ngày qua</option>
+            </select></form>
+        </div>
+        <div class="legend"><span><i class="lg b1"></i>Nhập kho</span><span><i class="lg b2"></i>Xuất kho</span></div>
+        <div class="bars">
+            @foreach (var d in Model.Chart)
+            {
+                <div class="bar-col">
+                    <div class="bar-pair">
+                        <div class="bar b1" style="height:@(d.Nhap * 100 / max)%" title="Nhập: @d.Nhap"></div>
+                        <div class="bar b2" style="height:@(d.Xuat * 100 / max)%" title="Xuất: @d.Xuat"></div>
+                    </div>
+                    <div class="bar-l">@(Model.Days == 7 ? thu[(int)d.Ngay.DayOfWeek] : d.Ngay.ToString("dd/MM"))</div>
+                </div>
+            }
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-h">
+            <div><h3>Cảnh báo tồn kho</h3><p class="muted">Sản phẩm cần được bổ sung</p></div>
+            <a class="more" asp-controller="TonKho" asp-action="Index" asp-route-thap="true">Xem tất cả →</a>
+        </div>
+        @if (Model.Low.Count == 0)
+        {
+            <p class="muted pad">Hiện không có sản phẩm nào dưới mức tồn kho tối thiểu.</p>
+        }
+        @foreach (var l in Model.Low)
+        {
+            <div class="alert-row">
+                <i class="chip red">@Ui.Initials(l.TenSP)</i>
+                <div class="grow"><b>@l.TenSP</b><div class="muted sm">@Fmt.MaSP(l.MaSP) · @l.TenKho</div></div>
+                <b class="@(l.Ton <= 0 ? "down" : "warn")">@Fmt.Num(l.Ton) @l.DonViTinh</b>
+            </div>
+        }
+        @if (Model.LowCount > 0)
+        {
+            <div class="warnbox">⚠ Có <b>@Model.LowCount</b> sản phẩm dưới mức tồn kho tối thiểu</div>
+        }
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-h">
+        <div><h3>Giao dịch gần đây</h3><p class="muted">Các phiếu nhập và xuất mới nhất trong hệ thống</p></div>
+        <a class="more" asp-controller="Phieu" asp-action="Index" asp-route-loai="nhap">Xem phiếu nhập →</a>
+    </div>
+    <div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th>MÃ PHIẾU</th><th>LOẠI</th><th>ĐỐI TÁC / KHO</th><th>NGƯỜI TẠO</th><th>NGÀY TẠO</th><th class="r">GIÁ TRỊ</th></tr></thead>
+        <tbody>
+        @foreach (var p in Model.Recent)
+        {
+            <tr>
+                <td><a class="lnk" asp-controller="Phieu" asp-action="Form" asp-route-loai="@p.Loai" asp-route-id="@p.Id">@p.Ma</a></td>
+                <td><span class="badge @(p.Loai == "nhap" ? "ok" : "warn")">@(p.Loai == "nhap" ? "Nhập kho" : "Xuất kho")</span></td>
+                <td>@(p.DoiTac ?? p.TenKho)</td>
+                <td>@p.NguoiTao</td>
+                <td>@Fmt.Date(p.Ngay)</td>
+                <td class="r"><b>@Fmt.Money(p.GiaTri)</b></td>
+            </tr>
+        }
+        @if (Model.Recent.Count == 0) { <tr><td colspan="6" class="muted center">Chưa có giao dịch nào.</td></tr> }
+        </tbody>
+    </table></div>
+</div>

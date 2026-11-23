@@ -1,0 +1,97 @@
+@model BanLeDatVM
+@{ ViewData["Title"] = "Đặt mua sản phẩm"; }
+<partial name="_DeXuatStyle" />
+
+<div class="page-h">
+    <div>
+        <div class="eyebrow">MUA HÀNG</div>
+        <h1>Đặt mua sản phẩm</h1>
+        <p class="muted">Chọn sản phẩm và số lượng. Hệ thống tự tìm kho đang có hàng; đơn chỉ có hiệu lực sau khi thủ kho xác nhận.</p>
+    </div>
+</div>
+
+<form method="post" asp-action="DatMua" id="frm">
+    <div class="card">
+        <div class="card-h"><div><h3>Sản phẩm đặt mua</h3><p class="muted">Chỉ đặt được tối đa số hàng còn trong kho. Sản phẩm hết hàng chưa nhận bán.</p></div>
+            <button type="button" class="dx-btn gh sm" id="add">+ Thêm dòng</button></div>
+        <div class="tbl-wrap">
+            <table class="tbl">
+                <thead><tr><th>SẢN PHẨM</th><th class="r">SỐ LƯỢNG</th><th class="r">ĐƠN GIÁ</th><th class="r">THÀNH TIỀN</th><th></th></tr></thead>
+                <tbody id="rows"></tbody>
+                <tfoot><tr><td colspan="3" class="r"><b>Tổng giá trị</b></td><td class="r"><b id="tong">0 đ</b></td><td></td></tr></tfoot>
+            </table>
+        </div>
+    </div>
+
+    <div class="card">
+        <div style="padding:16px 28px 24px">
+            <label><b>Ghi chú cho thủ kho</b></label>
+            <input name="ghiChu" class="dx-in" maxlength="200" style="margin-top:6px" />
+        </div>
+    </div>
+
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+        <a class="dx-btn gh" asp-action="Index">Hủy</a>
+        <button class="dx-btn">Gửi đơn đặt mua</button>
+    </div>
+</form>
+
+@section Scripts {
+<script>
+    const SP = @Html.Raw(Model.SanPhamJson);
+    const rows = document.getElementById('rows');
+    const fmt = n => new Intl.NumberFormat('vi-VN').format(n);
+
+    // Số lượng không được vượt số hàng còn: nhập quá thì tự sửa ngay trong ô nhập về mức tối đa.
+    function recalc() {
+        let sum = 0;
+        rows.querySelectorAll('tr').forEach(tr => {
+            const sp = SP[tr.querySelector('select').value];
+            const inp = tr.querySelector('input');
+            const note = tr.querySelector('.ton');
+            let q = parseInt(inp.value, 10);
+            let chinh = false;
+            if (sp) {
+                inp.max = sp.tong;
+                if (!isNaN(q) && q > sp.tong) { q = sp.tong; inp.value = q; chinh = true; }
+            }
+            if (isNaN(q) || q < 0) q = 0;
+            const gia = sp ? sp.gia : 0;
+            tr.querySelector('.gia').textContent = fmt(gia);
+            tr.querySelector('.tt').textContent = fmt(gia * q);
+            note.textContent = sp
+                ? (chinh ? 'Chỉ còn ' + fmt(sp.tong) + ' ' + (sp.dvt || '') + ', số lượng đã được điều chỉnh về mức tối đa.'
+                         : 'Còn tối đa ' + fmt(sp.tong) + ' ' + (sp.dvt || '') + ' có thể đặt')
+                : '';
+            note.style.color = chinh ? '#b91c1c' : '';
+            sum += gia * q;
+        });
+        document.getElementById('tong').textContent = fmt(sum) + ' đ';
+    }
+
+    function addRow() {
+        const tr = document.createElement('tr');
+        let opts = '<option value="">-- Chọn sản phẩm --</option>';
+        for (const [id, s] of Object.entries(SP)) opts += s.tong > 0
+            ? `<option value="${id}">${s.ten}</option>`
+            : `<option value="${id}" disabled>${s.ten} — Hết hàng</option>`;
+        tr.innerHTML = `
+            <td><select name="maSP" class="dx-in" required>${opts}</select><div class="muted sm ton"></div></td>
+            <td class="r"><input name="soLuong" type="number" min="1" value="1" class="dx-in" style="width:110px;text-align:right" required /></td>
+            <td class="r gia">0</td><td class="r"><b class="tt">0</b></td>
+            <td class="r"><button type="button" class="dx-btn gh sm del">Xóa</button></td>`;
+        tr.querySelector('select').addEventListener('change', recalc);
+        tr.querySelector('input').addEventListener('input', recalc);
+        tr.querySelector('input').addEventListener('change', e => {   // rời ô nhập: không để trống hoặc nhỏ hơn 1
+            const v = parseInt(e.target.value, 10);
+            if (isNaN(v) || v < 1) e.target.value = 1;
+            recalc();
+        });
+        tr.querySelector('.del').addEventListener('click', () => { tr.remove(); recalc(); });
+        rows.appendChild(tr);
+        recalc();
+    }
+    document.getElementById('add').addEventListener('click', addRow);
+    addRow();
+</script>
+}

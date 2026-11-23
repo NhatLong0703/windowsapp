@@ -1,0 +1,53 @@
+@model List<YeuCauRow>
+@{
+    ViewData["Title"] = "Yêu cầu nhập hàng";
+    var cho = Model.Count(x => x.TrangThai == "ChoNCC");
+}
+<partial name="_DeXuatStyle" />
+
+<div class="page-h">
+    <div>
+        <div class="eyebrow">NHÀ CUNG CẤP</div>
+        <h1>Yêu cầu nhập hàng</h1>
+        <p class="muted">@cho yêu cầu đang chờ bạn giao. Xác nhận giao thì hệ thống tạo phiếu nhập và cộng hàng vào kho.</p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="tbl-wrap">
+        <table class="tbl">
+            <thead><tr><th>SẢN PHẨM</th><th>KHO NHẬN</th><th class="r">SỐ LƯỢNG</th><th>NGÀY DUYỆT</th><th>TRẠNG THÁI</th><th>XỬ LÝ</th></tr></thead>
+            <tbody>
+                @foreach (var y in Model)
+                {
+                    <tr>
+                        <td><b>@y.TenSP</b>@if (!string.IsNullOrEmpty(y.GhiChu)) { <div class="muted sm">@y.GhiChu</div> }</td>
+                        <td>@y.TenKho</td>
+                        <td class="r"><b>@y.SoLuong</b> @y.DonViTinh</td>
+                        <td>@(y.NgayDuyet.HasValue ? Fmt.Date(y.NgayDuyet.Value) : "")</td>
+                        <td>
+                            @if (y.TrangThai == "ChoNCC") { <span class="dx-badge wait">Chờ giao</span> }
+                            else if (y.TrangThai == "DaGiao") { <span class="dx-badge ok">Đã giao</span> @if (y.MaPNTao != null) { <div class="muted sm">PN-@y.MaPNTao.Value.ToString("00000")</div> } }
+                            else { <span class="dx-badge no">Đã từ chối</span> <div class="muted sm">@y.LyDoTuChoi</div> }
+                        </td>
+                        <td>
+                            @if (y.TrangThai == "ChoNCC")
+                            {
+                                <form method="post" asp-action="XacNhan" class="dx-row">
+                                    <input type="hidden" name="id" value="@y.MaYC" />
+                                    <button class="dx-btn ok sm">Xác nhận giao hàng</button>
+                                </form>
+                                <form method="post" asp-action="TuChoi" class="dx-row">
+                                    <input type="hidden" name="id" value="@y.MaYC" />
+                                    <input name="lyDo" placeholder="Lý do từ chối" class="dx-in" maxlength="200" />
+                                    <button class="dx-btn no sm">Từ chối</button>
+                                </form>
+                            }
+                        </td>
+                    </tr>
+                }
+                @if (Model.Count == 0) { <tr><td colspan="6" class="muted center">Chưa có yêu cầu nhập hàng nào gửi tới bạn.</td></tr> }
+            </tbody>
+        </table>
+    </div>
+</div>

@@ -1,0 +1,47 @@
+@model List<NhaBanLe>
+@{ ViewData["Title"] = "Nhà bán lẻ"; }
+<div class="page-h">
+    <div><div class="eyebrow">ĐỐI TÁC</div><h1>Nhà bán lẻ</h1><p class="muted">Mỗi nhà bán lẻ có tài khoản riêng, chỉ được gửi đơn đặt mua và theo dõi đơn của mình.</p></div>
+    <button class="btn btn-primary" onclick="openForm('dlg')">@Ui.Icon("plus") Thêm nhà bán lẻ</button>
+</div>
+<div class="card">
+    <form class="toolbar" method="get"><input name="q" value="@ViewBag.Q" placeholder="Tìm tên, người liên hệ, điện thoại, tài khoản..." /><button class="btn">Tìm</button></form>
+    <div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th>NHÀ BÁN LẺ</th><th>LIÊN HỆ</th><th>ĐỊA CHỈ</th><th>TÀI KHOẢN</th><th></th></tr></thead>
+        <tbody>
+        @foreach (var b in Model)
+        {
+            <tr>
+                <td><b>@b.TenBL</b></td>
+                <td>@b.NguoiLienHe<div class="muted sm">@b.SoDienThoai @b.Email</div></td>
+                <td>@b.DiaChi</td>
+                <td>@(b.TenDangNhap ?? "—")</td>
+                <td class="acts">
+                    <button class="icon-act" title="Sửa" data-item="@JsonSerializer.Serialize(b)" onclick="openForm('dlg', this)">@Ui.Icon("edit")</button>
+                    <form method="post" asp-action="Delete" asp-route-id="@b.MaBL" onsubmit="return confirm('Xóa nhà bán lẻ này cùng tài khoản? (Không xóa được nếu đã có đơn đặt mua)')"><button class="icon-act danger" title="Xóa">@Ui.Icon("trash")</button></form>
+                </td>
+            </tr>
+        }
+        @if (Model.Count == 0) { <tr><td colspan="5" class="muted center">Chưa có nhà bán lẻ nào.</td></tr> }
+        </tbody>
+    </table></div>
+</div>
+<dialog class="dlg" id="dlg">
+    <form method="post" asp-action="Save" autocomplete="off">
+        <h3 data-new="Thêm nhà bán lẻ" data-edit="Sửa nhà bán lẻ"></h3>
+        <input type="hidden" name="MaBL" value="0" />
+        <label class="field">Tên nhà bán lẻ<input name="TenBL" required /></label>
+        <div class="grid2">
+            <label class="field">Người liên hệ<input name="NguoiLienHe" /></label>
+            <label class="field">Điện thoại<input name="SoDienThoai" /></label>
+        </div>
+        <label class="field">Email<input name="Email" type="email" /></label>
+        <label class="field">Địa chỉ<input name="DiaChi" /></label>
+        <div class="sep">Tài khoản đăng nhập (bỏ trống nếu chưa cấp)</div>
+        <div class="grid2">
+            <label class="field">Tên đăng nhập<input name="TenDangNhap" autocomplete="off" /></label>
+            <label class="field">Mật khẩu (khi sửa, để trống = giữ nguyên)<input name="MatKhau" type="password" autocomplete="new-password" /></label>
+        </div>
+        <div class="dlg-f"><button type="button" class="btn" onclick="this.closest('dialog').close()">Hủy</button><button class="btn btn-primary">Lưu</button></div>
+    </form>
+</dialog>

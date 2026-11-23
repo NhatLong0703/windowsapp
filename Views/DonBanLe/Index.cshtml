@@ -1,0 +1,38 @@
+@model List<DonRow>
+@{
+    ViewData["Title"] = "Đơn bán lẻ";
+    string? tt = ViewBag.TrangThai;
+    string Tab(string? v) => (tt == v) ? "tab on" : "tab";
+}
+<div class="page-h"><div><div class="eyebrow">NGHIỆP VỤ KHO</div><h1>Đơn bán lẻ</h1>
+    <p class="muted">Đơn đặt mua do nhà bán lẻ gửi tới.@(User.IsAdmin() ? " Quản lý chỉ xem; thủ kho của từng kho sẽ xác nhận hoặc từ chối." : " Bạn xác nhận hoặc từ chối đơn của kho mình phụ trách.")</p></div></div>
+<div class="card">
+    <div class="tabs">
+        <a class="@Tab("ChoXacNhan")" asp-action="Index" asp-route-trangThai="ChoXacNhan">Chờ xác nhận</a>
+        <a class="@Tab("DaXacNhan")" asp-action="Index" asp-route-trangThai="DaXacNhan">Đã xác nhận</a>
+        <a class="@Tab("TuChoi")" asp-action="Index" asp-route-trangThai="TuChoi">Bị từ chối</a>
+        <a class="@Tab("DaHuy")" asp-action="Index" asp-route-trangThai="DaHuy">Đã hủy</a>
+        <a class="@Tab(null)" asp-action="Index">Tất cả</a>
+    </div>
+    <form class="toolbar" method="get">
+        <input type="hidden" name="trangThai" value="@tt" />
+        <input name="q" value="@ViewBag.Q" placeholder="Tìm mã đơn, nhà bán lẻ..." /><button class="btn">Tìm</button>
+    </form>
+    <div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th>MÃ ĐƠN</th><th>NGÀY ĐẶT</th><th>NHÀ BÁN LẺ</th><th>KHO</th><th class="r">SỐ DÒNG</th><th class="r">GIÁ TRỊ</th><th>TRẠNG THÁI</th><th></th></tr></thead>
+        <tbody>
+        @foreach (var d in Model)
+        {
+            var st = Fmt.Don(d.TrangThai);
+            <tr>
+                <td><a class="lnk" asp-action="Detail" asp-route-id="@d.Id"><b>@d.Ma</b></a></td>
+                <td>@d.NgayDat.ToString("dd/MM/yyyy HH:mm")</td><td>@d.TenBL</td><td>@d.TenKho</td>
+                <td class="r">@d.SoDong</td><td class="r"><b>@Fmt.Money(d.GiaTri)</b></td>
+                <td><span class="badge @st.Css">@st.Text</span></td>
+                <td class="acts"><a class="btn" asp-action="Detail" asp-route-id="@d.Id">@(d.TrangThai == "ChoXacNhan" && !User.IsAdmin() ? "Xử lý" : "Xem")</a></td>
+            </tr>
+        }
+        @if (Model.Count == 0) { <tr><td colspan="8" class="muted center">Không có đơn nào.</td></tr> }
+        </tbody>
+    </table></div>
+</div>

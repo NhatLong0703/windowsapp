@@ -1,0 +1,4 @@
+@model int
+<a class="icon-btn" asp-controller="TonKho" asp-action="Index" asp-route-thap="true" title="@(Model > 0 ? Model + " sản phẩm sắp hết hàng" : "Không có cảnh báo tồn kho")">
+    @Ui.Icon("bell")@if (Model > 0) {<i class="dot"></i>}
+</a>

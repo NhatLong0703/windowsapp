@@ -1,0 +1,74 @@
+@model NccPortalVM
+@{
+    ViewData["Title"] = "Cổng nhà cung cấp";
+    var tong = Model.Phieus.Sum(p => p.TongTien);
+}
+<div class="page-h">
+    <div><div class="eyebrow">NHÀ CUNG CẤP</div><h1>@Model.Ten</h1></div>
+    <a class="btn btn-primary" asp-controller="DeXuatNcc" asp-action="Index">+ Đề xuất sản phẩm mới</a>
+</div>
+
+<div class="card">
+    <div class="card-h">
+        <div>
+            <h3>Phiếu nhập hàng của bạn</h3>
+            <p class="muted">@Model.Phieus.Count phiếu, tổng giá trị @Fmt.Money(tong)</p>
+        </div>
+    </div>
+    <div class="tbl-wrap">
+        <table class="tbl">
+            <thead><tr><th>MÃ PHIẾU</th><th>NGÀY NHẬP</th><th>KHO</th><th class="r">SỐ DÒNG</th><th class="r">TỔNG TIỀN</th><th>GHI CHÚ</th></tr></thead>
+            <tbody>
+                @foreach (var p in Model.Phieus)
+                {
+                    <tr>
+                        <td class="muted">PN-@p.MaPN.ToString("00000")</td>
+                        <td>@Fmt.Date(p.NgayNhap)</td>
+                        <td>@p.TenKho</td>
+                        <td class="r">@p.SoDong</td>
+                        <td class="r"><b>@Fmt.Money(p.TongTien)</b></td>
+                        <td>@p.GhiChu</td>
+                    </tr>
+                }
+                @if (Model.Phieus.Count == 0)
+                {
+                    <tr><td colspan="6" class="muted center">Chưa có phiếu nhập nào từ bạn.</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-h">
+        <div>
+            <h3>Sản phẩm bạn cung cấp</h3>
+            <p class="muted">@Model.Sps.Count sản phẩm</p>
+        </div>
+    </div>
+    <div class="tbl-wrap">
+        <table class="tbl">
+            <thead><tr><th>MÃ</th><th>TÊN SẢN PHẨM</th><th>ĐƠN VỊ</th><th class="r">ĐƠN GIÁ</th><th class="r">ĐANG TỒN</th></tr></thead>
+            <tbody>
+                @foreach (var s in Model.Sps)
+                {
+                    <tr>
+                        <td class="muted">@Fmt.MaSP(s.MaSP)</td>
+                        <td>
+                            <b>@s.TenSP</b>
+                            @if (!string.IsNullOrEmpty(s.TonTheoKho)) { <div class="sm">Đang ở: @s.TonTheoKho</div> }
+                            else { <div class="muted sm">Chưa có trong kho nào</div> }
+                        </td>
+                        <td>@s.DonViTinh</td>
+                        <td class="r">@Fmt.Money(s.DonGia ?? 0)</td>
+                        <td class="r"><b>@Fmt.Num(s.TongTon)</b> @s.DonViTinh</td>
+                    </tr>
+                }
+                @if (Model.Sps.Count == 0)
+                {
+                    <tr><td colspan="5" class="muted center">Quản lý chưa gán sản phẩm nào cho bạn.</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

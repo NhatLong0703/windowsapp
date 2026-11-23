@@ -1,0 +1,9 @@
+@{ ViewData["Title"] = "Đổi mật khẩu"; }
+<div class="page-h"><div><div class="eyebrow">TÀI KHOẢN</div><h1>Đổi mật khẩu</h1></div></div>
+<form class="card form-card" method="post" asp-action="DoiMatKhau">
+    @if (ViewBag.Err != null) { <div class="flash err">@ViewBag.Err</div> }
+    <label class="field">Mật khẩu hiện tại<input name="matCu" type="password" required autocomplete="current-password" /></label>
+    <label class="field">Mật khẩu mới (ít nhất 6 ký tự)<input name="matMoi" type="password" required minlength="6" autocomplete="new-password" /></label>
+    <label class="field">Nhập lại mật khẩu mới<input name="nhapLai" type="password" required autocomplete="new-password" /></label>
+    <div><button class="btn btn-primary">Lưu mật khẩu</button></div>
+</form>

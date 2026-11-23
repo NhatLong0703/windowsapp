@@ -1,0 +1,41 @@
+@model List<TonRow>
+@{
+    ViewData["Title"] = "Tồn kho";
+    var khos = (List<Kho>)ViewBag.Khos;
+    int? selKho = ViewBag.MaKho;
+    bool thap = ViewBag.Thap;
+}
+<div class="page-h"><div><div class="eyebrow">TỔNG QUAN</div><h1>Tồn kho</h1><p class="muted">Tồn = tổng nhập − tổng xuất theo từng kho.</p></div></div>
+<div class="card">
+    <form class="toolbar" method="get">
+        <input name="q" value="@ViewBag.Q" placeholder="Tìm sản phẩm..." />
+        @if (User.IsAdmin())
+        {
+            <select name="maKho"><option value="">Tất cả kho</option>@foreach (var k in khos) { <option value="@k.MaKho" selected="@(selKho == k.MaKho)">@k.TenKho</option> }</select>
+        }
+        else
+        {
+            <span class="badge ok">Kho: @khos.FirstOrDefault()?.TenKho</span>
+        }
+        <label class="check"><input type="checkbox" name="thap" value="true" checked="@thap" /> Chỉ hiện hàng sắp hết</label>
+        <button class="btn">Lọc</button>
+    </form>
+    <div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th>SẢN PHẨM</th><th>KHO</th><th class="r">TỒN</th><th class="r">TỐI THIỂU</th><th class="r">GIÁ TRỊ</th><th>TRẠNG THÁI</th></tr></thead>
+        <tbody>
+        @foreach (var r in Model)
+        {
+            var st = r.Ton <= 0 ? ("Hết hàng", "bad") : r.Ton <= r.TonToiThieu ? ("Sắp hết", "warn") : ("Ổn định", "ok");
+            <tr>
+                <td><b>@r.TenSP</b><div class="muted sm">@Fmt.MaSP(r.MaSP)</div></td>
+                <td>@r.TenKho</td>
+                <td class="r"><b>@Fmt.Num(r.Ton)</b> @r.DonViTinh</td>
+                <td class="r">@r.TonToiThieu</td>
+                <td class="r">@Fmt.Money(r.Ton > 0 ? r.Ton * r.DonGia : 0)</td>
+                <td><span class="badge @st.Item2">@st.Item1</span></td>
+            </tr>
+        }
+        @if (Model.Count == 0) { <tr><td colspan="6" class="muted center">Không có dữ liệu tồn kho. Hãy tạo phiếu nhập để bắt đầu.</td></tr> }
+        </tbody>
+    </table></div>
+</div>

@@ -1,0 +1,40 @@
+@model List<BaoCaoRow>
+@{
+    ViewData["Title"] = "Báo cáo";
+    var tu = (DateTime)ViewBag.Tu; var den = (DateTime)ViewBag.Den;
+    var khos = (List<Kho>)ViewBag.Khos;
+    int? selKho = ViewBag.MaKho;
+}
+<div class="page-h">
+    <div><div class="eyebrow">NGHIỆP VỤ KHO</div><h1>Báo cáo nhập - xuất</h1><p class="muted">Tổng hợp theo sản phẩm trong khoảng thời gian chọn.</p></div>
+    <a class="btn btn-primary" asp-action="Csv" asp-route-tu="@Fmt.DateInput(tu)" asp-route-den="@Fmt.DateInput(den)" asp-route-maKho="@selKho">@Ui.Icon("download") Tải CSV</a>
+</div>
+<div class="card">
+    <form class="toolbar" method="get">
+        <label class="inl">Từ ngày <input type="date" name="tu" value="@Fmt.DateInput(tu)" /></label>
+        <label class="inl">Đến ngày <input type="date" name="den" value="@Fmt.DateInput(den)" /></label>
+        @if (User.IsAdmin())
+        {
+            <select name="maKho"><option value="">Tất cả kho</option>@foreach (var k in khos) { <option value="@k.MaKho" selected="@(selKho == k.MaKho)">@k.TenKho</option> }</select>
+        }
+        else
+        {
+            <span class="badge ok">Kho: @khos.FirstOrDefault()?.TenKho</span>
+        }
+        <button class="btn">Xem báo cáo</button>
+    </form>
+    <div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th>SẢN PHẨM</th><th class="r">SL NHẬP</th><th class="r">GIÁ TRỊ NHẬP</th><th class="r">SL XUẤT</th><th class="r">GIÁ TRỊ XUẤT</th></tr></thead>
+        <tbody>
+        @foreach (var r in Model)
+        {
+            <tr><td><b>@r.TenSP</b> <span class="muted sm">@r.DonViTinh</span></td><td class="r">@Fmt.Num(r.NhapSL)</td><td class="r">@Fmt.Money(r.NhapGT)</td><td class="r">@Fmt.Num(r.XuatSL)</td><td class="r">@Fmt.Money(r.XuatGT)</td></tr>
+        }
+        @if (Model.Count == 0) { <tr><td colspan="5" class="muted center">Không có giao dịch trong khoảng này.</td></tr> }
+        </tbody>
+        @if (Model.Count > 0)
+        {
+            <tfoot><tr><td><b>Tổng</b></td><td class="r"><b>@Fmt.Num(Model.Sum(x => x.NhapSL))</b></td><td class="r"><b>@Fmt.Money(Model.Sum(x => x.NhapGT))</b></td><td class="r"><b>@Fmt.Num(Model.Sum(x => x.XuatSL))</b></td><td class="r"><b>@Fmt.Money(Model.Sum(x => x.XuatGT))</b></td></tr></tfoot>
+        }
+    </table></div>
+</div>

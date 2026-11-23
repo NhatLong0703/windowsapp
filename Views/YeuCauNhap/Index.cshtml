@@ -1,0 +1,137 @@
+@model List<YeuCauRow>
+@{
+    ViewData["Title"] = "Yêu cầu nhập hàng";
+    var admin = User.IsInRole("Admin");
+    var sps = ViewBag.Sps as List<SpChonRow>;
+    var cho = Model.Count(x => x.TrangThai == "ChoAdmin");
+}
+<partial name="_DeXuatStyle" />
+
+<div class="page-h">
+    <div>
+        <div class="eyebrow">GIAO DỊCH</div>
+        <h1>Yêu cầu nhập hàng</h1>
+        <p class="muted">@(admin ? $"Gửi yêu cầu nhập hàng tới nhà cung cấp, hoặc duyệt yêu cầu của thủ kho ({cho} đang chờ). Nhà cung cấp xác nhận giao thì hàng vào kho đã chọn." : "Gửi yêu cầu tới quản lý. Khi nhà cung cấp xác nhận giao, hàng tự vào kho của bạn.")</p>
+    </div>
+</div>
+
+@if (admin)
+{
+    <div class="card">
+        <div class="card-h"><div><h3>Gửi yêu cầu tới nhà cung cấp</h3><p class="muted">Chọn nhà cung cấp, sản phẩm của họ và kho nhận hàng.</p></div></div>
+        <form method="post" asp-action="TaoNcc" class="dx-form">
+            <select name="maNCC" id="selNcc" class="dx-in s2" required>
+                <option value="">-- Nhà cung cấp --</option>
+                @foreach (var n in (IEnumerable<NhaCungCap>)ViewBag.Nccs) { <option value="@n.MaNCC">@n.TenNCC</option> }
+            </select>
+            <select name="maSP" id="selSp" class="dx-in s2" required><option value="">-- Sản phẩm --</option></select>
+            <select name="maKho" id="selKho" class="dx-in s2" required>
+                <option value="">-- Kho nhận hàng --</option>
+                @foreach (var k in (IEnumerable<Kho>)ViewBag.Khos) { <option value="@k.MaKho">@k.TenKho</option> }
+            </select>
+            <input name="soLuong" type="number" min="1" class="dx-in s2" placeholder="Số lượng" required />
+            <input name="ghiChu" class="dx-in s2" placeholder="Ghi chú" maxlength="200" />
+            <div class="s2 muted sm" id="tonHint" style="align-self:center"></div>
+            <button class="dx-btn s6">Gửi yêu cầu tới nhà cung cấp</button>
+        </form>
+    </div>
+}
+
+@if (!admin && sps != null)
+{
+    <div class="card">
+        <div class="card-h"><div><h3>Tạo yêu cầu mới</h3><p class="muted">Chỉ hiện sản phẩm đã có nhà cung cấp.</p></div></div>
+        <form method="post" asp-action="Tao" class="dx-form">
+            <select name="maSP" class="dx-in s3" required>
+                <option value="">-- Chọn sản phẩm --</option>
+                @foreach (var s in sps)
+                {
+                    <option value="@s.MaSP">@s.TenSP — còn @s.Ton @s.DonViTinh (tối thiểu @s.TonToiThieu) — @s.TenNCC</option>
+                }
+            </select>
+            <input name="soLuong" type="number" min="1" class="dx-in s1" placeholder="Số lượng" required />
+            <input name="ghiChu" class="dx-in s2" placeholder="Ghi chú" maxlength="200" />
+            <button class="dx-btn s6">Gửi yêu cầu</button>
+        </form>
+    </div>
+}
+
+<div class="card">
+    <div class="card-h"><div><h3>Danh sách yêu cầu</h3><p class="muted">@Model.Count yêu cầu</p></div></div>
+    <div class="tbl-wrap">
+        <table class="tbl">
+            <thead><tr><th>SẢN PHẨM</th><th>KHO</th><th class="r">TỒN HIỆN TẠI</th><th class="r">YÊU CẦU NHẬP</th><th>NGƯỜI TẠO</th><th>TRẠNG THÁI</th><th>XỬ LÝ</th></tr></thead>
+            <tbody>
+                @foreach (var y in Model)
+                {
+                    var thap = y.TonHienTai <= y.TonToiThieu;
+                    <tr>
+                        <td><b>@y.TenSP</b><div class="muted sm">NCC: @y.TenNCC</div>@if (!string.IsNullOrEmpty(y.GhiChu)) { <div class="muted sm">@y.GhiChu</div> }</td>
+                        <td>@y.TenKho</td>
+                        <td class="r"><b style="@(thap ? "color:#b91c1c" : "")">@y.TonHienTai</b> @y.DonViTinh<div class="muted sm">Tối thiểu @y.TonToiThieu</div></td>
+                        <td class="r"><b>@y.SoLuong</b> @y.DonViTinh</td>
+                        <td>@y.NguoiTao<div class="muted sm">@Fmt.Date(y.NgayTao)</div></td>
+                        <td>
+                            @if (y.TrangThai == "ChoAdmin") { <span class="dx-badge wait">Chờ admin duyệt</span> }
+                            else if (y.TrangThai == "ChoNCC") { <span class="dx-badge wait">Chờ nhà cung cấp giao</span> }
+                            else if (y.TrangThai == "DaGiao") { <span class="dx-badge ok">Đã nhập kho</span> @if (y.MaPNTao != null) { <div class="muted sm">PN-@y.MaPNTao.Value.ToString("00000")</div> } }
+                            else if (y.TrangThai == "TuChoi") { <span class="dx-badge no">Admin từ chối</span> <div class="muted sm">@y.LyDoTuChoi</div> }
+                            else if (y.TrangThai == "NCCTuChoi") { <span class="dx-badge no">NCC từ chối</span> <div class="muted sm">@y.LyDoTuChoi</div> }
+                            else { <span class="dx-badge off">Đã hủy</span> }
+                        </td>
+                        <td>
+                            @if (y.TrangThai == "ChoAdmin" && admin)
+                            {
+                                <form method="post" asp-action="Duyet" class="dx-row">
+                                    <input type="hidden" name="id" value="@y.MaYC" />
+                                    <input name="soLuong" type="number" min="1" value="@y.SoLuong" class="dx-in" style="width:90px" title="Số lượng duyệt" />
+                                    <button class="dx-btn ok sm">Duyệt</button>
+                                </form>
+                                <form method="post" asp-action="TuChoi" class="dx-row">
+                                    <input type="hidden" name="id" value="@y.MaYC" />
+                                    <input name="lyDo" placeholder="Lý do từ chối" class="dx-in" maxlength="200" />
+                                    <button class="dx-btn no sm">Từ chối</button>
+                                </form>
+                            }
+                            else if (y.TrangThai == "ChoAdmin")
+                            {
+                                <form method="post" asp-action="Huy"><input type="hidden" name="id" value="@y.MaYC" /><button class="dx-btn gh sm">Hủy</button></form>
+                            }
+                        </td>
+                    </tr>
+                }
+                @if (Model.Count == 0) { <tr><td colspan="7" class="muted center">Chưa có yêu cầu nhập hàng nào.</td></tr> }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@if (admin)
+{
+    @section Scripts {
+    <script>
+        const SPS = @Html.Raw(ViewBag.SpJson);
+        const TON = @Html.Raw(ViewBag.TonJson);
+        const selNcc = document.getElementById('selNcc'), selSp = document.getElementById('selSp'),
+              selKho = document.getElementById('selKho'), hint = document.getElementById('tonHint');
+        function fillSp(keep) {
+            const ncc = parseInt(selNcc.value) || 0;
+            selSp.innerHTML = '<option value="">-- Sản phẩm --</option>' +
+                SPS.filter(s => s.ncc === ncc).map(s => `<option value="${s.id}">${s.ten}</option>`).join('');
+            if (keep) selSp.value = keep;
+            showTon();
+        }
+        function showTon() {
+            const sp = parseInt(selSp.value) || 0, k = parseInt(selKho.value) || 0;
+            if (!sp || !k) { hint.textContent = ''; return; }
+            const r = TON.find(t => t.k === k && t.s === sp);
+            hint.textContent = 'Tồn hiện tại ở kho này: ' + (r ? r.t : 0);
+        }
+        selNcc.addEventListener('change', () => fillSp());
+        selSp.addEventListener('change', showTon);
+        selKho.addEventListener('change', showTon);
+        @if (ViewBag.PreNcc != null) { <text>selNcc.value = '@ViewBag.PreNcc'; fillSp('@ViewBag.PreSp');</text> }
+        @if (ViewBag.PreKho != null) { <text>selKho.value = '@ViewBag.PreKho'; showTon();</text> }
+    </script>
+    }
+}

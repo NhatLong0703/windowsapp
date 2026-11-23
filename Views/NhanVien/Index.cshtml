@@ -1,0 +1,66 @@
+@model List<NhanVien>
+@{
+    ViewData["Title"] = "Nhân viên";
+    var khos = (List<Kho>)ViewBag.Khos;
+}
+<div class="page-h">
+    <div><div class="eyebrow">DANH MỤC</div><h1>Nhân viên &amp; tài khoản</h1><p class="muted">Thủ kho chỉ làm việc trong đúng một kho do bạn phân công. Đổi kho có hiệu lực ngay ở lần thao tác tiếp theo của họ.</p></div>
+    <button class="btn btn-primary" onclick="openForm('dlg')">@Ui.Icon("plus") Thêm nhân viên</button>
+</div>
+<div class="card"><div class="tbl-wrap"><table class="tbl">
+    <thead><tr><th>HỌ TÊN</th><th>ĐIỆN THOẠI</th><th>TÀI KHOẢN</th><th>VAI TRÒ</th><th>KHO PHỤ TRÁCH</th><th></th></tr></thead>
+    <tbody>
+    @foreach (var n in Model)
+    {
+        var vt = n.VaiTro ?? (n.ChucVu == Roles.Label(Roles.Admin) ? Roles.Admin : Roles.ThuKho);   // chưa có tài khoản: suy ra từ chức vụ đã lưu
+        n.VaiTro = vt;
+        <tr>
+            <td><b>@n.HoTen</b><div class="muted sm">@n.GioiTinh @(n.NgaySinh.HasValue ? Fmt.Date(n.NgaySinh.Value) : "")</div></td>
+            <td>@n.SoDienThoai</td>
+            <td>@(n.TenDangNhap ?? "—")</td>
+            <td>@if (vt == Roles.Admin) {<span class="badge warn">Quản lý</span>} else {<span class="badge ok">Thủ kho</span>}</td>
+            <td>@if (vt == Roles.ThuKho) { <span>@(n.TenKho ?? (n.TenDangNhap != null ? "⚠ Chưa gán kho" : "—"))</span> } else { <span class="muted">—</span> }</td>
+            <td class="acts">
+                <button class="icon-act" title="Sửa" data-item="@JsonSerializer.Serialize(n)" onclick="openForm('dlg', this)">@Ui.Icon("edit")</button>
+                <form method="post" asp-action="Delete" asp-route-id="@n.MaNV" onsubmit="return confirm('Xóa nhân viên này cùng tài khoản đăng nhập?')"><button class="icon-act danger" title="Xóa">@Ui.Icon("trash")</button></form>
+            </td>
+        </tr>
+    }
+    </tbody>
+</table></div></div>
+<dialog class="dlg" id="dlg">
+    <form method="post" asp-action="Save" autocomplete="off">
+        <h3 data-new="Thêm nhân viên" data-edit="Sửa nhân viên"></h3>
+        <input type="hidden" name="MaNV" value="0" />
+        <label class="field">Họ tên<input name="HoTen" required /></label>
+        <div class="grid2">
+            <label class="field">Giới tính<select name="GioiTinh"><option value="">—</option><option>Nam</option><option>Nữ</option><option>Khác</option></select></label>
+            <label class="field">Ngày sinh<input name="NgaySinh" type="date" /></label>
+            <label class="field">Điện thoại<input name="SoDienThoai" /></label>
+            <label class="field">Vai trò<select name="VaiTro" id="vaitro"><option value="ThuKho">Thủ kho</option><option value="Admin">Quản lý</option></select></label>
+        </div>
+        <label class="field">Địa chỉ<input name="DiaChi" /></label>
+        <label class="field" id="kho-field">Kho phụ trách (bắt buộc với thủ kho)
+            <select name="MaKho"><option value="">— Chọn kho —</option>@foreach (var k in khos) { <option value="@k.MaKho">@k.TenKho</option> }</select></label>
+        <div class="sep">Tài khoản đăng nhập (bỏ trống nếu không cấp)</div>
+        <div class="grid2">
+            <label class="field">Tên đăng nhập<input name="TenDangNhap" autocomplete="off" /></label>
+            <label class="field">Mật khẩu (khi sửa, để trống = giữ nguyên)<input name="MatKhau" type="password" autocomplete="new-password" /></label>
+        </div>
+        <div class="dlg-f"><button type="button" class="btn" onclick="this.closest('dialog').close()">Hủy</button><button class="btn btn-primary">Lưu</button></div>
+    </form>
+</dialog>
+@section Scripts {
+<script>
+    (function () {
+        var vt = document.getElementById('vaitro'), kf = document.getElementById('kho-field');
+        function sync() { kf.style.display = vt.value === 'ThuKho' ? '' : 'none'; }
+        vt.addEventListener('change', sync);
+        document.querySelector('#dlg form').addEventListener('reset', function () { setTimeout(sync, 0); });
+        document.getElementById('dlg').addEventListener('toggle', sync);
+        // openForm điền giá trị xong mới mở hộp thoại, nên đồng bộ lại sau mỗi lần bấm nút
+        document.addEventListener('click', function () { setTimeout(sync, 0); });
+        sync();
+    })();
+</script>
+}

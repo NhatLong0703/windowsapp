@@ -1,0 +1,66 @@
+@model List<WebApplication1.Models.DeXuatRow>
+@{
+    ViewData["Title"] = "Đề xuất sản phẩm";
+    var khos = (IEnumerable<WebApplication1.Models.Kho>)ViewBag.Khos;
+    var loais = (IEnumerable<dynamic>)ViewBag.Loais;
+}
+<partial name="_DeXuatStyle" />
+
+<div class="page-h">
+    <div><div class="eyebrow">NHÀ CUNG CẤP</div><h1>Đề xuất sản phẩm</h1></div>
+    <a class="dx-btn gh" asp-controller="NccPortal" asp-action="Index">← Về cổng nhà cung cấp</a>
+</div>
+
+<div class="card">
+    <div class="card-h"><div><h3>Gửi đề xuất mới</h3><p class="muted">Quản lý duyệt xong, sản phẩm được thêm vào danh mục và hàng nhập thẳng vào kho bạn chọn.</p></div></div>
+    <form method="post" asp-action="Gui" class="dx-form">
+        <input name="tenSP" class="dx-in s3" placeholder="Tên sản phẩm" required maxlength="100" />
+        <input name="donViTinh" class="dx-in s1" placeholder="Đơn vị" maxlength="30" />
+        <input name="donGia" type="number" min="0" step="1000" class="dx-in s2" placeholder="Đơn giá" />
+        <select name="maLoai" class="dx-in s2">
+            <option value="">-- Loại hàng --</option>
+            @foreach (var l in loais) { <option value="@l.MaLoai">@l.TenLoai</option> }
+        </select>
+        <input name="soLuong" type="number" min="0" class="dx-in s2" placeholder="Số lượng giao" />
+        <select name="maKho" class="dx-in s2">
+            <option value="">-- Kho nhận --</option>
+            @foreach (var k in khos) { <option value="@k.MaKho">@k.TenKho</option> }
+        </select>
+        <input name="moTa" class="dx-in s4" placeholder="Mô tả" maxlength="200" />
+        <button class="dx-btn s2">Gửi đề xuất</button>
+    </form>
+</div>
+
+<div class="card">
+    <div class="card-h"><div><h3>Đề xuất của bạn</h3><p class="muted">@Model.Count đề xuất</p></div></div>
+    <div class="tbl-wrap">
+        <table class="tbl">
+            <thead><tr><th>SẢN PHẨM</th><th class="r">ĐƠN GIÁ</th><th class="r">SL</th><th>KHO</th><th>NGÀY GỬI</th><th>TRẠNG THÁI</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var d in Model)
+                {
+                    <tr>
+                        <td><b>@d.TenSP</b>@if (!string.IsNullOrEmpty(d.DonViTinh)) { <span class="muted"> (@d.DonViTinh)</span> }</td>
+                        <td class="r">@Fmt.Money(d.DonGia)</td>
+                        <td class="r">@d.SoLuong</td>
+                        <td>@d.TenKho</td>
+                        <td>@Fmt.Date(d.NgayTao)</td>
+                        <td>
+                            @if (d.TrangThai == "ChoDuyet") { <span class="dx-badge wait">Chờ duyệt</span> }
+                            else if (d.TrangThai == "DaDuyet") { <span class="dx-badge ok">Đã duyệt</span> }
+                            else if (d.TrangThai == "TuChoi") { <span class="dx-badge no">Từ chối</span> <div class="muted sm">@d.LyDoTuChoi</div> }
+                            else { <span class="dx-badge off">Đã hủy</span> }
+                        </td>
+                        <td class="r">
+                            @if (d.TrangThai == "ChoDuyet")
+                            {
+                                <form method="post" asp-action="Huy"><input type="hidden" name="maDX" value="@d.MaDX" /><button class="dx-btn gh sm">Hủy</button></form>
+                            }
+                        </td>
+                    </tr>
+                }
+                @if (Model.Count == 0) { <tr><td colspan="7" class="muted center">Bạn chưa gửi đề xuất nào.</td></tr> }
+            </tbody>
+        </table>
+    </div>
+</div>

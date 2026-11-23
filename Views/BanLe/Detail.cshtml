@@ -1,0 +1,29 @@
+@model DonDetailVM
+@{
+    var d = Model.Don;
+    ViewData["Title"] = "Đơn " + d.Ma;
+    var st = Fmt.Don(d.TrangThai);
+}
+<div class="page-h">
+    <div><div class="eyebrow">ĐƠN CỦA TÔI</div><h1>@d.Ma <span class="badge @st.Css">@st.Text</span></h1>
+        <p class="muted">Kho @d.TenKho · Đặt lúc @d.NgayDat.ToString("dd/MM/yyyy HH:mm")</p></div>
+    <a class="btn" asp-action="Index">← Đơn của tôi</a>
+</div>
+@if (d.TrangThai == "ChoXacNhan") { <div class="flash info">Đơn đang chờ thủ kho xác nhận. Bạn có thể hủy đơn khi chưa được xử lý.</div> }
+@if (d.TrangThai == "DaXacNhan") { <div class="flash ok">Đơn đã được xác nhận lúc @(d.NgayXuLy?.ToString("dd/MM/yyyy HH:mm")). Kho sẽ chuẩn bị giao hàng.</div> }
+@if (d.TrangThai == "TuChoi") { <div class="flash err">Đơn bị từ chối. Lý do: @d.LyDoTuChoi</div> }
+@if (!string.IsNullOrEmpty(d.GhiChu)) { <div class="card pad"><b>Ghi chú:</b> @d.GhiChu</div> }
+<div class="card"><div class="tbl-wrap"><table class="tbl">
+    <thead><tr><th>SẢN PHẨM</th><th class="r">SỐ LƯỢNG</th><th class="r">ĐƠN GIÁ</th><th class="r">THÀNH TIỀN</th></tr></thead>
+    <tbody>
+    @foreach (var l in Model.Lines)
+    {
+        <tr><td><b>@l.TenSP</b></td><td class="r">@Fmt.Num(l.SoLuong) @l.DonViTinh</td><td class="r">@Fmt.Money(l.DonGia)</td><td class="r"><b>@Fmt.Money(l.SoLuong * l.DonGia)</b></td></tr>
+    }
+    </tbody>
+    <tfoot><tr><td colspan="3" class="r"><b>Tổng giá trị</b></td><td class="r"><b>@Fmt.Money(d.GiaTri)</b></td></tr></tfoot>
+</table></div></div>
+@if (d.TrangThai == "ChoXacNhan")
+{
+    <form method="post" asp-action="Huy" asp-route-id="@d.Id" onsubmit="return confirm('Hủy đơn này?')"><button class="btn danger-btn">Hủy đơn</button></form>
+}

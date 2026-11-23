@@ -1,0 +1,23 @@
+@model List<DonRow>
+@{ ViewData["Title"] = "Đơn của tôi"; }
+<div class="page-h">
+    <div><div class="eyebrow">MUA HÀNG</div><h1>Đơn của tôi</h1><p class="muted">Theo dõi trạng thái các đơn đã gửi tới kho.</p></div>
+    <a class="btn btn-primary" asp-action="DatMua">@Ui.Icon("plus") Đặt mua mới</a>
+</div>
+<div class="card"><div class="tbl-wrap"><table class="tbl">
+    <thead><tr><th>MÃ ĐƠN</th><th>NGÀY ĐẶT</th><th>KHO</th><th class="r">GIÁ TRỊ</th><th>TRẠNG THÁI</th><th></th></tr></thead>
+    <tbody>
+    @foreach (var d in Model)
+    {
+        var st = Fmt.Don(d.TrangThai);
+        <tr>
+            <td><a class="lnk" asp-action="Detail" asp-route-id="@d.Id"><b>@d.Ma</b></a></td>
+            <td>@d.NgayDat.ToString("dd/MM/yyyy HH:mm")</td><td>@d.TenKho</td>
+            <td class="r"><b>@Fmt.Money(d.GiaTri)</b></td>
+            <td><span class="badge @st.Css">@st.Text</span></td>
+            <td class="acts"><a class="btn" asp-action="Detail" asp-route-id="@d.Id">Xem</a></td>
+        </tr>
+    }
+    @if (Model.Count == 0) { <tr><td colspan="6" class="muted center">Bạn chưa có đơn nào. Bấm "Đặt mua mới" để bắt đầu.</td></tr> }
+    </tbody>
+</table></div></div>

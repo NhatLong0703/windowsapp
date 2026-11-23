@@ -1,0 +1,171 @@
+@model PhieuFormVM
+@{
+    var nhap = Model.Loai == "nhap";
+    var moi = Model.Head.Id == 0;
+    ViewData["Title"] = (moi ? "Tạo phiếu " : "Sửa phiếu ") + (nhap ? "nhập" : "xuất");
+    var thieu = Model.Khos.Count == 0 || Model.Sps.Count == 0 || (nhap && Model.Nccs.Count == 0);
+
+    // Bảng MaSP -> MaNCC do PhieuController gửi sang
+    var spNcc = ViewBag.SpNcc as Dictionary<int, int?> ?? new Dictionary<int, int?>();
+    string Ncc(int maSP) => spNcc.TryGetValue(maSP, out var v) && v != null ? v.Value.ToString() : "";
+}
+<div class="page-h">
+    <div><div class="eyebrow">GIAO DỊCH</div><h1>@ViewData["Title"]</h1></div>
+    <a class="btn" asp-action="Index" asp-route-loai="@Model.Loai">← Danh sách phiếu</a>
+</div>
+@if (thieu)
+{
+    <div class="flash err">Chưa đủ dữ liệu danh mục để tạo phiếu (cần có kho, sản phẩm@(nhap ? ", nhà cung cấp" : "")). Hãy nhờ quản trị viên bổ sung.</div>
+}
+<form method="post" asp-action="Save" asp-route-loai="@Model.Loai">
+    <input type="hidden" name="id" value="@Model.Head.Id" />
+    <div class="card pad">
+        <div class="grid3">
+            <label class="field">Ngày @(nhap ? "nhập" : "xuất")<input type="date" name="ngay" value="@Fmt.DateInput(Model.Head.Ngay)" required /></label>
+            @if (Model.KhoCoDinh)
+            {
+                <label class="field">
+                    Kho (kho của bạn)
+                    <input value="@Model.Khos.FirstOrDefault()?.TenKho" readonly />
+                    <input type="hidden" name="maKho" value="@Model.Head.MaKho" />
+                </label>
+            }
+            else
+            {
+                <label class="field">
+                    Kho
+                    <select name="maKho" required>
+                        <option value="">— Chọn kho —</option>
+                        @foreach (var k in Model.Khos)
+                        {
+                            <option value="@k.MaKho" selected="@(Model.Head.MaKho == k.MaKho)">@k.TenKho</option>
+                        }
+                    </select>
+                </label>
+            }
+            @if (nhap)
+            {
+                <label class="field">
+                    Nhà cung cấp
+                    <select name="maNCC" required>
+                        <option value="">— Chọn đối tác —</option>
+                        @foreach (var n in Model.Nccs)
+                        {
+                            <option value="@n.MaNCC" selected="@(Model.Head.MaNCC == n.MaNCC)">@n.TenNCC</option>
+                        }
+                    </select>
+                </label>
+            }
+        </div>
+        <label class="field">Ghi chú<input name="ghiChu" value="@Model.Head.GhiChu" maxlength="200" /></label>
+    </div>
+
+    <div class="card">
+        <div class="card-h">
+            <div><h3>Dòng hàng</h3><p class="muted">Chọn sản phẩm, số lượng và đơn giá @(nhap ? "nhập" : "xuất")@(Model.GiaKhoa ? " (đơn giá xuất theo danh mục, thủ kho không thể thay đổi)" : "")@(nhap ? ". Danh sách sản phẩm tự lọc theo nhà cung cấp đã chọn." : "")</p></div>
+            <button type="button" class="btn" id="add-line">@Ui.Icon("plus") Thêm dòng</button>
+        </div>
+        <div class="tbl-wrap">
+            <table class="tbl">
+                <thead><tr><th style="width:42%">SẢN PHẨM</th><th class="r">SỐ LƯỢNG</th><th class="r">ĐƠN GIÁ (đ)</th><th class="r">THÀNH TIỀN</th><th></th></tr></thead>
+                <tbody id="lines">
+                    @foreach (var l in Model.Lines)
+                    {
+                        <tr>
+                            <td>
+                                <select name="maSP" required>
+                                    <option value="">— Chọn sản phẩm —</option>
+                                    @foreach (var s in Model.Sps)
+                                    {
+                                        <option value="@s.MaSP" data-ncc="@Ncc(s.MaSP)" data-price="@((s.DonGia ?? 0).ToString("0"))" selected="@(l.MaSP == s.MaSP)">@s.TenSP @(string.IsNullOrEmpty(s.DonViTinh) ? "" : "(" + s.DonViTinh + ")")</option>
+                                    }
+                                </select>
+                            </td>
+                            <td class="r"><input type="number" name="soLuong" min="1" step="1" value="@l.SoLuong" required /></td>
+                            <td class="r"><input type="number" name="donGia" min="0" step="1" value="@l.DonGia.ToString("0")" required readonly="@Model.GiaKhoa" /></td>
+                            <td class="r"><b class="sub">0</b></td>
+                            <td class="acts"><button type="button" class="icon-act danger rm" title="Bỏ dòng">@Ui.Icon("trash")</button></td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot><tr><td colspan="3" class="r"><b>Tổng giá trị</b></td><td class="r"><b id="total">0 đ</b></td><td></td></tr></tfoot>
+            </table>
+        </div>
+    </div>
+    <div class="form-actions">
+        <a class="btn" asp-action="Index" asp-route-loai="@Model.Loai">Hủy</a>
+        <button class="btn btn-primary" disabled="@thieu">Lưu phiếu</button>
+    </div>
+</form>
+
+<template id="line-tpl">
+    <tr>
+        <td>
+            <select name="maSP" required>
+                <option value="">— Chọn sản phẩm —</option>
+                @foreach (var s in Model.Sps)
+                {
+                    <option value="@s.MaSP" data-ncc="@Ncc(s.MaSP)" data-price="@((s.DonGia ?? 0).ToString("0"))">@s.TenSP @(string.IsNullOrEmpty(s.DonViTinh) ? "" : "(" + s.DonViTinh + ")")</option>
+                }
+            </select>
+        </td>
+        <td class="r"><input type="number" name="soLuong" min="1" step="1" value="1" required /></td>
+        <td class="r"><input type="number" name="donGia" min="0" step="1" value="0" required readonly="@Model.GiaKhoa" /></td>
+        <td class="r"><b class="sub">0</b></td>
+        <td class="acts"><button type="button" class="icon-act danger rm" title="Bỏ dòng">@Ui.Icon("trash")</button></td>
+    </tr>
+</template>
+
+<script>
+    // Phiếu nhập: ô "Sản phẩm" chỉ hiện sản phẩm thuộc nhà cung cấp đã chọn.
+    // (Phiếu xuất không có ô nhà cung cấp nên đoạn này tự bỏ qua.)
+    (function () {
+        var nccSel = document.querySelector('select[name="maNCC"]');
+        var body = document.getElementById('lines');
+        var tpl = document.getElementById('line-tpl');
+        if (!nccSel || !body || !tpl) return;
+
+        // Danh sách đầy đủ sản phẩm lấy từ template
+        var master = Array.prototype.slice
+            .call(tpl.content.querySelectorAll('select[name="maSP"] option'))
+            .filter(function (o) { return o.value !== ''; });
+
+        // reset = true: bỏ chọn nếu sản phẩm không thuộc nhà cung cấp.
+        // reset = false (lúc mới mở trang sửa phiếu): giữ nguyên sản phẩm đang chọn.
+        function fill(sel, ncc, reset) {
+            var cur = sel.value;
+            var keep = !reset && cur !== '';
+            sel.innerHTML = '';
+            var ph = document.createElement('option');
+            ph.value = '';
+            ph.textContent = ncc ? '— Chọn sản phẩm —' : '— Chọn nhà cung cấp trước —';
+            sel.appendChild(ph);
+            master.forEach(function (o) {
+                var hop = ncc !== '' && o.getAttribute('data-ncc') === ncc;
+                if (hop || (keep && o.value === cur)) sel.appendChild(o.cloneNode(true));
+            });
+            sel.value = keep ? cur : '';
+            if (sel.value !== cur) sel.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+
+        function applyAll(reset) {
+            var ncc = nccSel.value;
+            Array.prototype.forEach.call(body.querySelectorAll('select[name="maSP"]'), function (s) { fill(s, ncc, reset); });
+        }
+
+        nccSel.addEventListener('change', function () { applyAll(true); });
+
+        // Dòng mới thêm bằng nút "Thêm dòng" cũng được lọc
+        new MutationObserver(function (muts) {
+            muts.forEach(function (m) {
+                Array.prototype.forEach.call(m.addedNodes, function (n) {
+                    if (n.querySelectorAll) {
+                        Array.prototype.forEach.call(n.querySelectorAll('select[name="maSP"]'), function (s) { fill(s, nccSel.value, true); });
+                    }
+                });
+            });
+        }).observe(body, { childList: true });
+
+        applyAll(false);
+    })();
+</script>

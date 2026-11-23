@@ -1,0 +1,16 @@
+@{ Layout = null; }
+<!DOCTYPE html>
+<html lang="vi">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Đăng nhập - KhoViet</title><link rel="stylesheet" href="~/css/app.css" /></head>
+<body class="auth-bg">
+<form class="auth-card" method="post" asp-action="Login">
+    <div class="brand dark"><div class="logo">K</div><div><div class="brand-name">KhoViet</div><div class="brand-sub">QUẢN LÝ KHO</div></div></div>
+    <h2>Đăng nhập</h2>
+    @if (ViewBag.Err != null) { <div class="flash err">@ViewBag.Err</div> }
+    <input type="hidden" name="returnUrl" value="@ViewBag.ReturnUrl" />
+    <label class="field">Tên đăng nhập<input name="username" autofocus required autocomplete="username" /></label>
+    <label class="field">Mật khẩu<input name="password" type="password" required autocomplete="current-password" /></label>
+    <button class="btn btn-primary wide">Đăng nhập</button>
+</form>
+</body>
+</html>

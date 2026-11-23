@@ -1,0 +1,53 @@
+@model DonDetailVM
+@{
+    var d = Model.Don;
+    ViewData["Title"] = "Đơn " + d.Ma;
+    var st = Fmt.Don(d.TrangThai);
+    var cho = d.TrangThai == "ChoXacNhan";
+    var thieu = Model.Lines.Any(l => l.SoLuong > l.Ton);
+}
+<div class="page-h">
+    <div><div class="eyebrow">NGHIỆP VỤ KHO</div><h1>@d.Ma <span class="badge @st.Css">@st.Text</span></h1>
+        <p class="muted">@d.TenBL · Kho @d.TenKho · Đặt lúc @d.NgayDat.ToString("dd/MM/yyyy HH:mm")</p></div>
+    <a class="btn" asp-action="Index">← Danh sách đơn</a>
+</div>
+@if (!string.IsNullOrEmpty(d.GhiChu)) { <div class="card pad"><b>Ghi chú của nhà bán lẻ:</b> @d.GhiChu</div> }
+<div class="card">
+    <div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th>SẢN PHẨM</th><th class="r">SỐ LƯỢNG ĐẶT</th><th class="r">TỒN TRONG KHO</th><th class="r">ĐƠN GIÁ</th><th class="r">THÀNH TIỀN</th></tr></thead>
+        <tbody>
+        @foreach (var l in Model.Lines)
+        {
+            <tr>
+                <td><b>@l.TenSP</b></td>
+                <td class="r">@Fmt.Num(l.SoLuong) @l.DonViTinh</td>
+                <td class="r">@if (l.SoLuong > l.Ton) { <b class="down">@Fmt.Num(l.Ton) (thiếu)</b> } else { <span>@Fmt.Num(l.Ton)</span> }</td>
+                <td class="r">@Fmt.Money(l.DonGia)</td><td class="r"><b>@Fmt.Money(l.SoLuong * l.DonGia)</b></td>
+            </tr>
+        }
+        </tbody>
+        <tfoot><tr><td colspan="4" class="r"><b>Tổng giá trị</b></td><td class="r"><b>@Fmt.Money(d.GiaTri)</b></td></tr></tfoot>
+    </table></div>
+</div>
+
+@if (d.TrangThai == "TuChoi") { <div class="flash err">Đã từ chối bởi @d.NguoiXuLy lúc @(d.NgayXuLy?.ToString("dd/MM/yyyy HH:mm")). Lý do: @d.LyDoTuChoi</div> }
+@if (d.TrangThai == "DaXacNhan")
+{
+    <div class="flash ok">Đã xác nhận bởi @d.NguoiXuLy lúc @(d.NgayXuLy?.ToString("dd/MM/yyyy HH:mm")).
+        @if (d.MaPX != null) { <a class="lnk" asp-controller="Phieu" asp-action="Form" asp-route-loai="xuat" asp-route-id="@d.MaPX">Xem phiếu xuất kho →</a> }</div>
+}
+@if (d.TrangThai == "DaHuy") { <div class="flash err">Nhà bán lẻ đã hủy đơn này.</div> }
+
+@if (cho && !User.IsAdmin())
+{
+    if (thieu) { <div class="flash err">Kho hiện không đủ hàng cho một số dòng. Bạn có thể nhập thêm hàng rồi xác nhận, hoặc từ chối đơn.</div> }
+    <div class="card pad action-bar">
+        <form method="post" asp-action="XacNhan" asp-route-id="@d.Id" onsubmit="return confirm('Xác nhận đơn này? Hệ thống sẽ tạo phiếu xuất và trừ tồn kho.')">
+            <button class="btn btn-primary" disabled="@thieu">✓ Xác nhận đơn &amp; xuất kho</button>
+        </form>
+        <form method="post" asp-action="TuChoi" asp-route-id="@d.Id" class="reject">
+            <input name="lyDo" placeholder="Lý do từ chối" maxlength="200" required />
+            <button class="btn danger-btn">Từ chối đơn</button>
+        </form>
+    </div>
+}

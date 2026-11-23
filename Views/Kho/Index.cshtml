@@ -1,0 +1,49 @@
+@model List<KhoRow>
+@{ ViewData["Title"] = "Kho hàng"; var admin = User.IsInRole("Admin"); }
+<div class="page-h">
+    <div><div class="eyebrow">DANH MỤC</div><h1>Kho hàng</h1><p class="muted">Tồn từng kho: bấm tên kho hoặc nút xem để biết kho đó đang còn những hàng gì.</p></div>
+    @if (admin) { <button class="btn btn-primary" onclick="openForm('dlg')">@Ui.Icon("plus") Thêm kho</button> }
+</div>
+<div class="card"><div class="tbl-wrap"><table class="tbl">
+    <thead><tr><th>MÃ</th><th>TÊN KHO</th><th>ĐỊA CHỈ</th><th>THỦ KHO</th><th class="r">MẶT HÀNG</th><th class="r">TỔNG TỒN</th><th class="r">GIÁ TRỊ TỒN</th><th>CẢNH BÁO</th><th></th></tr></thead>
+    <tbody>
+    @foreach (var k in Model)
+    {
+        <tr>
+            <td class="muted">@("K" + k.MaKho.ToString("000"))</td>
+            <td><a class="lnk" asp-action="Detail" asp-route-id="@k.MaKho"><b>@k.TenKho</b></a><div class="muted sm">@k.SoDienThoai</div></td>
+            <td>@k.DiaChi</td><td>@(string.IsNullOrEmpty(k.ThuKho) ? "—" : k.ThuKho)</td>
+            <td class="r"><b>@Fmt.Num(k.SoMatHang)</b></td>
+            <td class="r"><b>@Fmt.Num(k.TongTon)</b></td>
+            <td class="r">@Fmt.Money(k.GiaTri)</td>
+            <td>@if (k.SapHet > 0) { <span class="badge warn">@k.SapHet sắp hết / hết</span> } else { <span class="badge ok">Ổn định</span> }</td>
+            <td class="acts">
+                <a class="btn" asp-action="Detail" asp-route-id="@k.MaKho">Xem tồn</a>
+                @if (admin)
+                {
+                    <button class="icon-act" title="Sửa" data-item="@JsonSerializer.Serialize(new Kho { MaKho = k.MaKho, TenKho = k.TenKho, DiaChi = k.DiaChi, SoDienThoai = k.SoDienThoai })" onclick="openForm('dlg', this)">@Ui.Icon("edit")</button>
+                    <form method="post" asp-action="Delete" asp-route-id="@k.MaKho" onsubmit="return confirm('Xóa kho này?')"><button class="icon-act danger" title="Xóa">@Ui.Icon("trash")</button></form>
+                }
+            </td>
+        </tr>
+    }
+    @if (Model.Count == 0) { <tr><td colspan="9" class="muted center">Chưa có kho nào.</td></tr> }
+    </tbody>
+    @if (Model.Count > 1)
+    {
+        <tfoot><tr><td colspan="4"><b>Tổng cộng @Model.Count kho</b></td><td class="r"><b>@Fmt.Num(Model.Sum(x => x.SoMatHang))</b></td><td class="r"><b>@Fmt.Num(Model.Sum(x => x.TongTon))</b></td><td class="r"><b>@Fmt.Money(Model.Sum(x => x.GiaTri))</b></td><td colspan="2"></td></tr></tfoot>
+    }
+</table></div></div>
+@if (admin)
+{
+<dialog class="dlg" id="dlg">
+    <form method="post" asp-action="Save">
+        <h3 data-new="Thêm kho" data-edit="Sửa kho"></h3>
+        <input type="hidden" name="MaKho" value="0" />
+        <label class="field">Tên kho<input name="TenKho" required /></label>
+        <label class="field">Địa chỉ<input name="DiaChi" /></label>
+        <label class="field">Điện thoại<input name="SoDienThoai" /></label>
+        <div class="dlg-f"><button type="button" class="btn" onclick="this.closest('dialog').close()">Hủy</button><button class="btn btn-primary">Lưu</button></div>
+    </form>
+</dialog>
+}

@@ -1,0 +1,77 @@
+@model List<NhaCungCap>
+@{
+    ViewData["Title"] = "Nhà cung cấp";
+    var admin = User.IsInRole("Admin");
+
+    // Tên đăng nhập của từng nhà cung cấp do NhaCungCapController gửi sang
+    var tkNcc = ViewBag.TkNcc as Dictionary<int, string> ?? new Dictionary<int, string>();
+    string Tk(int maNCC) => tkNcc.TryGetValue(maNCC, out var v) ? v : "";
+}
+<div class="page-h">
+    <div><div class="eyebrow">DANH MỤC</div><h1>Nhà cung cấp / Đối tác</h1></div>
+    @if (admin)
+    {
+        <button class="btn btn-primary" onclick="openForm('dlg')">@Ui.Icon("plus") Thêm đối tác</button>
+    }
+</div>
+<div class="card">
+    <form class="toolbar" method="get"><input name="q" value="@ViewBag.Q" placeholder="Tìm theo tên, điện thoại, email, địa chỉ..." /><button class="btn">Tìm</button></form>
+    <div class="tbl-wrap">
+        <table class="tbl">
+            <thead><tr><th>ĐỐI TÁC</th><th>LIÊN HỆ</th><th>LOẠI MẶT HÀNG</th><th>TÀI KHOẢN</th><th class="r">ĐẠI DIỆN</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var n in Model)
+                {
+                    var tk = Tk(n.MaNCC);
+                    <tr>
+                        <td><a class="lnk" asp-action="Detail" asp-route-id="@n.MaNCC"><b>@n.TenNCC</b></a><div class="muted sm">@n.DiaChi</div></td>
+                        <td>@n.SoDienThoai<div class="muted sm">@n.Email</div></td>
+                        <td>@n.TenLoaiHang</td>
+                        <td>@if (string.IsNullOrEmpty(tk)) {
+                            <span class="muted">Chưa có</span>
+                        } else
+                        {
+
+                            @tk
+                        }
+                    </td>
+                    <td class="r">@n.SoDaiDien</td>
+                    <td class="acts">
+                        <a class="icon-act" title="Chi tiết" asp-action="Detail" asp-route-id="@n.MaNCC">@Ui.Icon("user")</a>
+                        @if (admin)
+                        {
+                            <button class="icon-act" title="Sửa" data-item="@JsonSerializer.Serialize(new { n.MaNCC, n.TenNCC, n.SoDienThoai, n.Email, n.DiaChi, TenDangNhap = tk, MatKhau = "" })" onclick="openForm('dlg', this)">@Ui.Icon("edit")</button>
+                            <form method="post" asp-action="Delete" asp-route-id="@n.MaNCC" onsubmit="return confirm('Xóa đối tác này cùng người đại diện và tài khoản của họ?')"><button class="icon-act danger" title="Xóa">@Ui.Icon("trash")</button></form>
+                        }
+                    </td>
+                </tr>
+            }
+            @if (Model.Count == 0)
+            {
+                <tr><td colspan="6" class="muted center">Chưa có đối tác nào.</td></tr>
+            }
+        </tbody>
+    </table>
+</div>
+</div>
+@if (admin)
+{
+    <dialog class="dlg" id="dlg">
+        <form method="post" asp-action="Save" autocomplete="off">
+            <h3 data-new="Thêm đối tác" data-edit="Sửa đối tác"></h3>
+            <input type="hidden" name="MaNCC" value="0" />
+            <label class="field">Tên đối tác<input name="TenNCC" required /></label>
+            <div class="grid2">
+                <label class="field">Điện thoại<input name="SoDienThoai" /></label>
+                <label class="field">Email<input name="Email" type="email" /></label>
+            </div>
+            <label class="field">Địa chỉ<input name="DiaChi" /></label>
+            <div class="grid2">
+                <label class="field">Tên đăng nhập (tùy chọn)<input name="TenDangNhap" autocomplete="off" /></label>
+                <label class="field">Mật khẩu<input name="MatKhau" type="password" autocomplete="new-password" placeholder="Ít nhất 6 ký tự" /></label>
+            </div>
+            <div class="muted sm">Để trống tên đăng nhập nếu chưa cần tài khoản. Khi sửa, để trống mật khẩu để giữ nguyên mật khẩu cũ.</div>
+            <div class="dlg-f"><button type="button" class="btn" onclick="this.closest('dialog').close()">Hủy</button><button class="btn btn-primary">Lưu</button></div>
+        </form>
+    </dialog>
+}

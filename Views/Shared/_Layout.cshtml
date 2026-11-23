@@ -1,0 +1,104 @@
+@{
+    var ctrl = (string)ViewContext.RouteData.Values["controller"]!;
+    var action = (string)ViewContext.RouteData.Values["action"]!;
+    var loai = Context.Request.Query["loai"].ToString();
+    var admin = User.IsInRole(Roles.Admin);
+    var banLe = User.IsInRole(Roles.BanLe);
+    var ncc = User.IsInRole(Roles.NhaCungCap);
+    var title = ViewData["Title"] as string ?? "";
+    string Act(bool on) => on ? "nav-item active" : "nav-item";
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@title - KhoViet</title>
+    <link rel="stylesheet" href="~/css/app.css" />
+</head>
+<body>
+    <div class="shell">
+        <aside class="side">
+            <div class="brand"><div class="logo">K</div><div><div class="brand-name">KhoViet</div><div class="brand-sub">@(banLe ? "CỔNG BÁN LẺ" : ncc ? "CỔNG NHÀ CUNG CẤP" : "QUẢN LÝ KHO")</div></div></div>
+            <nav>
+                @if (banLe)
+                {
+                    <div class="nav-h">MUA HÀNG</div>
+                    <a class="@Act(ctrl == "BanLe" && action != "DatMua")" asp-controller="BanLe" asp-action="Index">@Ui.Icon("report")<span>Đơn của tôi</span></a>
+                    <a class="@Act(ctrl == "BanLe" && action == "DatMua")" asp-controller="BanLe" asp-action="DatMua">@Ui.Icon("plus")<span>Đặt mua sản phẩm</span></a>
+                }
+                else if (ncc)
+                {
+                    <div class="nav-h">ĐỐI TÁC</div>
+                    <a class="@Act(ctrl == "NccPortal")" asp-controller="NccPortal" asp-action="Index">@Ui.Icon("truck")<span>Phiếu nhập và sản phẩm</span></a>
+                    <a class="@Act(ctrl == "DeXuatNcc")" asp-controller="DeXuatNcc" asp-action="Index">@Ui.Icon("plus")<span>Đề xuất sản phẩm</span></a>
+                    <a class="@Act(ctrl == "YeuCauNcc")" asp-controller="YeuCauNcc" asp-action="Index">@Ui.Icon("in")<span>Yêu cầu nhập hàng</span>@await Component.InvokeAsync("DeXuatBadge", new { loai = "yeucau" })</a>
+                }
+                else
+                {
+                    <div class="nav-h">TỔNG QUAN</div>
+                    <a class="@Act(ctrl == "Home")" asp-controller="Home" asp-action="Index">@Ui.Icon("home")<span>Tổng quan</span></a>
+                    <a class="@Act(ctrl == "TonKho")" asp-controller="TonKho" asp-action="Index">@Ui.Icon("grid")<span>Tồn kho</span></a>
+                    <div class="nav-h">DANH MỤC</div>
+                    <a class="@Act(ctrl == "SanPham")" asp-controller="SanPham" asp-action="Index">@Ui.Icon("box")<span>Sản phẩm</span></a>
+                    @if (admin)
+                    {
+                        <a class="@Act(ctrl == "LoaiHang")" asp-controller="LoaiHang" asp-action="Index">@Ui.Icon("tag")<span>Loại hàng</span></a>
+                    }
+                    <a class="@Act(ctrl == "Kho")" asp-controller="Kho" asp-action="Index">@Ui.Icon("warehouse")<span>@(admin ? "Kho hàng" : "Kho của tôi")</span></a>
+                    <a class="@Act(ctrl == "NhaCungCap")" asp-controller="NhaCungCap" asp-action="Index">@Ui.Icon("truck")<span>Nhà cung cấp</span></a>
+                    @if (admin)
+                    {
+                        <a class="@Act(ctrl == "NhaBanLe")" asp-controller="NhaBanLe" asp-action="Index">@Ui.Icon("truck")<span>Nhà bán lẻ</span></a>
+                        <a class="@Act(ctrl == "NhanVien")" asp-controller="NhanVien" asp-action="Index">@Ui.Icon("user")<span>Nhân viên</span></a>
+                    }
+                    <div class="nav-h">GIAO DỊCH</div>
+                    @if (admin)
+                    {
+                        <a class="@Act(ctrl == "Phieu" && loai == "nhap")" asp-controller="Phieu" asp-action="Index" asp-route-loai="nhap">@Ui.Icon("in")<span>Phiếu nhập</span></a>
+                    }
+                    <a class="@Act(ctrl == "Phieu" && loai == "xuat")" asp-controller="Phieu" asp-action="Index" asp-route-loai="xuat">@Ui.Icon("out")<span>Phiếu xuất</span></a>
+                    @if (admin)
+                    {
+                        <a class="@Act(ctrl == "DeXuat")" asp-controller="DeXuat" asp-action="Index">@Ui.Icon("in")<span>Duyệt đề xuất</span>@await Component.InvokeAsync("DeXuatBadge")</a>
+                    }
+                    <a class="@Act(ctrl == "YeuCauNhap")" asp-controller="YeuCauNhap" asp-action="Index">@Ui.Icon("in")<span>Yêu cầu nhập hàng</span>@await Component.InvokeAsync("DeXuatBadge", new { loai = "yeucau" })</a>
+                    <a class="@Act(ctrl == "DonBanLe")" asp-controller="DonBanLe" asp-action="Index">@Ui.Icon("report")<span>Đơn bán lẻ</span></a>
+                    <a class="@Act(ctrl == "BaoCao")" asp-controller="BaoCao" asp-action="Index">@Ui.Icon("report")<span>Báo cáo</span></a>
+                }
+            </nav>
+            @await Component.InvokeAsync("SideUser")
+            <div class="side-links">
+                <a asp-controller="Account" asp-action="DoiMatKhau">Đổi mật khẩu</a>
+                <form method="post" asp-controller="Account" asp-action="Logout"><button class="linkbtn">Đăng xuất</button></form>
+            </div>
+        </aside>
+        <div class="main">
+            <header class="top">
+                <div class="crumb">KhoViet <span>/</span> <b>@title</b></div>
+                <div class="top-r">
+                    <span class="date">@Fmt.LongDate(DateTime.Now)</span>
+                    @if (!banLe && !ncc)
+                    {
+                        <text>@await Component.InvokeAsync("LowStockBell")</text>
+                    }
+                    <div class="avatar">@Ui.Initials(User.Identity?.Name)</div>
+                </div>
+            </header>
+            <div class="content">
+                @if (TempData["Ok"] is string ok)
+                {
+                    <div class="flash ok">@ok</div>
+                }
+                @if (TempData["Err"] is string er)
+                {
+                    <div class="flash err">@er</div>
+                }
+                @RenderBody()
+            </div>
+        </div>
+    </div>
+    <script src="~/js/app.js"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

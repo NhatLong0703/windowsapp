@@ -1,0 +1,46 @@
+@model PhieuXemVM
+@{
+    var nhap = (string?)ViewBag.Loai == "nhap";
+    ViewData["Title"] = (nhap ? "Phiếu nhập " : "Phiếu xuất ") + Model.Phieu.Ma;
+    var tong = Model.Dong.Sum(d => d.SoLuong * d.DonGia);
+}
+<div class="page-h">
+    <div><div class="eyebrow">GIAO DỊCH</div><h1>@Model.Phieu.Ma</h1></div>
+    <a class="btn" asp-action="Index" asp-route-loai="@(nhap ? "nhap" : "xuat")">← Danh sách phiếu @(nhap ? "nhập" : "xuất")</a>
+</div>
+
+<div class="card">
+    <div class="card-h"><div><h3>Thông tin phiếu</h3><p class="muted">Phiếu chỉ xem, không chỉnh sửa.</p></div></div>
+    <div class="tbl-wrap">
+        <table class="tbl">
+            <tbody>
+                <tr><td class="muted">@(nhap ? "Ngày nhập" : "Ngày xuất")</td><td>@Fmt.Date(Model.Phieu.Ngay)</td></tr>
+                <tr><td class="muted">Kho</td><td>@Model.Phieu.TenKho</td></tr>
+                @if (nhap) { <tr><td class="muted">Nhà cung cấp</td><td>@Model.Phieu.DoiTac</td></tr> }
+                <tr><td class="muted">Người tạo</td><td>@Model.Phieu.NguoiTao</td></tr>
+                @if (Model.DonLienKet != null) { <tr><td class="muted">Từ đơn bán lẻ</td><td>@Model.DonLienKet</td></tr> }
+                <tr><td class="muted">Ghi chú</td><td>@Model.Phieu.GhiChu</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-h"><div><h3>Dòng hàng</h3><p class="muted">@Model.Dong.Count dòng, tổng giá trị @Fmt.Money(tong)</p></div></div>
+    <div class="tbl-wrap">
+        <table class="tbl">
+            <thead><tr><th>SẢN PHẨM</th><th class="r">SỐ LƯỢNG</th><th class="r">ĐƠN GIÁ</th><th class="r">THÀNH TIỀN</th></tr></thead>
+            <tbody>
+                @foreach (var d in Model.Dong)
+                {
+                    <tr>
+                        <td><b>@d.TenSP</b></td>
+                        <td class="r">@d.SoLuong @d.DonViTinh</td>
+                        <td class="r">@Fmt.Money(d.DonGia)</td>
+                        <td class="r"><b>@Fmt.Money(d.SoLuong * d.DonGia)</b></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

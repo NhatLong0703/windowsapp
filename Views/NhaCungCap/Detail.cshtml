@@ -1,0 +1,78 @@
+@model NccDetailVM
+@{ ViewData["Title"] = Model.Ncc.TenNCC; var admin = User.IsInRole("Admin"); }
+<div class="page-h">
+    <div><div class="eyebrow">ĐỐI TÁC</div><h1>@Model.Ncc.TenNCC</h1>
+        <p class="muted">@Model.Ncc.DiaChi @(string.IsNullOrEmpty(Model.Ncc.SoDienThoai) ? "" : "· " + Model.Ncc.SoDienThoai) @(string.IsNullOrEmpty(Model.Ncc.Email) ? "" : "· " + Model.Ncc.Email)</p></div>
+    <a class="btn" asp-action="Index">← Danh sách đối tác</a>
+</div>
+
+@{ var sps = ViewBag.SanPhams as List<SanPham> ?? new List<SanPham>(); }
+<div class="card">
+    <div class="card-h">
+        <div><h3>Sản phẩm của đối tác</h3><p class="muted">Các sản phẩm được gán cho đối tác này. Hàng nhập thêm được yêu cầu qua mục "Yêu cầu nhập hàng".</p></div>
+    </div>
+    <div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th>MÃ</th><th>SẢN PHẨM</th><th>LOẠI</th><th class="r">ĐƠN GIÁ</th><th class="r">ĐANG TỒN</th></tr></thead>
+        <tbody>
+        @foreach (var s in sps)
+        {
+            <tr>
+                <td class="muted">@Fmt.MaSP(s.MaSP)</td>
+                <td>
+                    <b>@s.TenSP</b>
+                    @if (!string.IsNullOrEmpty(s.TonTheoKho)) { <div class="sm">Đang ở: @s.TonTheoKho</div> }
+                    else { <div class="muted sm">@(admin ? "Chưa có trong kho nào" : "Chưa có trong kho của bạn")</div> }
+                </td>
+                <td>@s.TenLoai</td>
+                <td class="r">@Fmt.Money(s.DonGia ?? 0)</td>
+                <td class="r"><b>@Fmt.Num(s.TongTon)</b> @s.DonViTinh</td>
+            </tr>
+        }
+        @if (sps.Count == 0) { <tr><td colspan="5" class="muted center">Chưa có sản phẩm nào được gán cho đối tác này.</td></tr> }
+        </tbody>
+    </table></div>
+</div>
+
+<div class="card">
+    <div class="card-h">
+        <div><h3>Thành viên đại diện</h3><p class="muted">Người liên hệ của đối tác</p></div>
+        @if (admin) { <button class="btn btn-primary" onclick="openForm('dlgdd')">@Ui.Icon("plus") Thêm người đại diện</button> }
+    </div>
+    <div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th>HỌ TÊN</th><th>CHỨC VỤ</th><th>ĐIỆN THOẠI</th><th>EMAIL</th>@if (admin) {<th></th>}</tr></thead>
+        <tbody>
+        @foreach (var d in Model.Reps)
+        {
+            <tr>
+                <td><b>@d.HoTen</b></td><td>@d.ChucVu</td><td>@d.SoDienThoai</td><td>@d.Email</td>
+                @if (admin)
+                {
+                    <td class="acts">
+                        <button class="icon-act" title="Sửa" data-item="@JsonSerializer.Serialize(d)" onclick="openForm('dlgdd', this)">@Ui.Icon("edit")</button>
+                        <form method="post" asp-action="DeleteDaiDien" asp-route-id="@d.MaDD" asp-route-maNCC="@Model.Ncc.MaNCC" onsubmit="return confirm('Xóa người đại diện này?')"><button class="icon-act danger" title="Xóa">@Ui.Icon("trash")</button></form>
+                    </td>
+                }
+            </tr>
+        }
+        @if (Model.Reps.Count == 0) { <tr><td colspan="5" class="muted center">Chưa có người đại diện nào.</td></tr> }
+        </tbody>
+    </table></div>
+</div>
+
+@if (admin)
+{
+<dialog class="dlg" id="dlgdd">
+    <form method="post" asp-action="SaveDaiDien">
+        <h3 data-new="Thêm người đại diện" data-edit="Sửa người đại diện"></h3>
+        <input type="hidden" name="MaDD" value="0" />
+        <input type="hidden" name="MaNCC" value="@Model.Ncc.MaNCC" />
+        <label class="field">Họ tên<input name="HoTen" required /></label>
+        <div class="grid2">
+            <label class="field">Chức vụ<input name="ChucVu" /></label>
+            <label class="field">Điện thoại<input name="SoDienThoai" /></label>
+        </div>
+        <label class="field">Email<input name="Email" type="email" /></label>
+        <div class="dlg-f"><button type="button" class="btn" onclick="this.closest('dialog').close()">Hủy</button><button class="btn btn-primary">Lưu</button></div>
+    </form>
+</dialog>
+}

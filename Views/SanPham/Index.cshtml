@@ -1,0 +1,81 @@
+@model List<SanPham>
+@{
+    ViewData["Title"] = "Sản phẩm";
+    var admin = User.IsInRole("Admin");
+    var loai = (List<LoaiHang>)ViewBag.Loai;
+    int? selLoai = ViewBag.MaLoai;
+
+    // Nhà cung cấp: danh sách + bảng MaSP -> MaNCC do SanPhamController gửi sang
+    var nccs = ViewBag.Nccs as List<NhaCungCap> ?? new List<NhaCungCap>();
+    var spNcc = ViewBag.SpNcc as Dictionary<int, int?> ?? new Dictionary<int, int?>();
+    int? NccOf(int maSP) => spNcc.TryGetValue(maSP, out var v) ? v : null;
+    string TenNcc(int? id) => id == null ? "" : (nccs.FirstOrDefault(n => n.MaNCC == id)?.TenNCC ?? "");
+}
+<div class="page-h">
+    <div><div class="eyebrow">DANH MỤC</div><h1>Sản phẩm</h1><p class="muted">Sản phẩm mới do nhà cung cấp đề xuất và được quản lý duyệt. Hàng vào kho qua <b>Yêu cầu nhập hàng</b> và ra khỏi kho khi xác nhận <b>Đơn bán lẻ</b>.</p></div>
+</div>
+<div class="card">
+    <form class="toolbar" method="get">
+        <input name="q" value="@ViewBag.Q" placeholder="Tìm theo tên, mô tả..." />
+        <select name="maLoai"><option value="">Tất cả loại hàng</option>
+            @foreach (var l in loai) { <option value="@l.MaLoai" selected="@(selLoai == l.MaLoai)">@l.TenLoai</option> }
+        </select>
+        <button class="btn">Lọc</button>
+    </form>
+    <div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th>MÃ</th><th>TÊN SẢN PHẨM</th><th>LOẠI</th><th>NHÀ CUNG CẤP</th><th>ĐƠN VỊ</th><th class="r">ĐƠN GIÁ</th><th class="r">TỐI THIỂU</th><th class="r">ĐANG TỒN</th><th></th></tr></thead>
+        <tbody>
+        @foreach (var s in Model)
+        {
+            var ncc = NccOf(s.MaSP);
+            <tr>
+                <td class="muted">@Fmt.MaSP(s.MaSP)</td>
+                <td>
+                    <b>@s.TenSP</b>
+                    @if (!string.IsNullOrEmpty(s.MoTa)) {<div class="muted sm">@s.MoTa</div>}
+                    @if (!string.IsNullOrEmpty(s.TonTheoKho)) { <div class="sm">Đang ở: @s.TonTheoKho</div> }
+                    else { <div class="muted sm">@(admin ? "Chưa có trong kho nào" : "Chưa có trong kho của bạn")</div> }
+                </td>
+                <td>@s.TenLoai</td>
+                <td>@if (ncc == null) { <span class="muted">Chưa gán</span> } else { <text>@TenNcc(ncc)</text> }</td>
+                <td>@s.DonViTinh</td>
+                <td class="r">@Fmt.Money(s.DonGia ?? 0)</td><td class="r">@s.TonToiThieu</td>
+                <td class="r">
+                    <b>@Fmt.Num(s.TongTon)</b> @s.DonViTinh
+                    @if (s.TongTon <= 0) { <div><span class="badge bad">Chưa có hàng</span></div> }
+                    else if (s.TongTon <= s.TonToiThieu) { <div><span class="badge warn">Sắp hết</span></div> }
+                </td>
+                <td class="acts">
+                    <a class="btn" asp-controller="Phieu" asp-action="Form" asp-route-loai="nhap" asp-route-maSP="@s.MaSP">@Ui.Icon("in") Yêu cầu nhập</a>
+                    @if (admin)
+                    {
+                        <a class="btn" asp-controller="Phieu" asp-action="Form" asp-route-loai="xuat" asp-route-maSP="@s.MaSP">@Ui.Icon("out") Xuất kho</a>
+                        <button class="icon-act" title="Sửa" data-item="@JsonSerializer.Serialize(new { s.MaSP, s.TenSP, s.MaLoai, s.DonViTinh, s.DonGia, s.TonToiThieu, s.MoTa, MaNCC = ncc })" onclick="openForm('dlg', this)">@Ui.Icon("edit")</button>
+                        <form method="post" asp-action="Delete" asp-route-id="@s.MaSP" onsubmit="return confirm('Xóa sản phẩm này?')"><button class="icon-act danger" title="Xóa">@Ui.Icon("trash")</button></form>
+                    }
+                </td>
+            </tr>
+        }
+        @if (Model.Count == 0) { <tr><td colspan="9" class="muted center">Chưa có sản phẩm nào.</td></tr> }
+        </tbody>
+    </table></div>
+</div>
+@if (admin)
+{
+<dialog class="dlg" id="dlg">
+    <form method="post" asp-action="Save">
+        <h3 data-new="Thêm sản phẩm" data-edit="Sửa sản phẩm"></h3>
+        <input type="hidden" name="MaSP" value="0" />
+        <label class="field">Tên sản phẩm<input name="TenSP" required /></label>
+        <div class="grid2">
+            <label class="field">Loại hàng<select name="MaLoai"><option value="">— Chưa phân loại —</option>@foreach (var l in loai) { <option value="@l.MaLoai">@l.TenLoai</option> }</select></label>
+            <label class="field">Đơn vị tính<input name="DonViTinh" placeholder="cái, hộp, cuộn..." /></label>
+            <label class="field">Đơn giá (đ)<input name="DonGia" type="number" min="0" step="1" value="0" /></label>
+            <label class="field">Tồn kho tối thiểu<input name="TonToiThieu" type="number" min="0" step="1" value="10" /></label>
+        </div>
+        <label class="field">Nhà cung cấp<select name="MaNCC"><option value="">— Chưa gán —</option>@foreach (var n in nccs) { <option value="@n.MaNCC">@n.TenNCC</option> }</select></label>
+        <label class="field">Mô tả<input name="MoTa" /></label>
+        <div class="dlg-f"><button type="button" class="btn" onclick="this.closest('dialog').close()">Hủy</button><button class="btn btn-primary">Lưu</button></div>
+    </form>
+</dialog>
+}

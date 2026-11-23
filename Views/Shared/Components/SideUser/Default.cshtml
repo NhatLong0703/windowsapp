@@ -1,0 +1,5 @@
+@model SideUserVM
+<div class="side-user">
+    <div class="avatar sm">@Ui.Initials(Model.Name)</div>
+    <div class="su-t"><b>@Model.Name</b><span>@Model.RoleLabel@(string.IsNullOrEmpty(Model.KhoTen) ? "" : " · " + Model.KhoTen)</span></div>
+</div>
